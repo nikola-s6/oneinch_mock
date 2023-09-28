@@ -16,7 +16,7 @@ export class SwapService {
   async getSwapData(swapData: SwapDTO): Promise<SwapResponseDTO> {
     const data: SwapResponseDTO = new SwapResponseDTO();
 
-    data.data =
+    data.tx =
       swapData.protocols === Protocols.Swap
         ? await this.handleGenericSwap(swapData)
         : await this.handleUniswapV2(swapData);

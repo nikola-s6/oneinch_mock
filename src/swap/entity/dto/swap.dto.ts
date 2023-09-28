@@ -23,7 +23,7 @@ export class SwapDTO {
 }
 
 export class SwapResponseDTO {
-  data: string;
+  tx: string;
 }
 
 export enum Protocols {

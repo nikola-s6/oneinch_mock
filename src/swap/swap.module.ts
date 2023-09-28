@@ -7,5 +7,6 @@ import { TokenModule } from 'src/token/token.module';
   imports: [TokenModule],
   controllers: [SwapController],
   providers: [SwapService],
+  exports: [SwapService],
 })
 export class SwapModule {}
