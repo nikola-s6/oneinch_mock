@@ -14,7 +14,7 @@ import { TokenRepository } from 'src/token/token.reporitory';
 @Injectable()
 export class SwapService {
   private readonly SWAP_SELECTOR = '0x12aa3caf';
-  private readonly UNISWAP_V3_SELECTOR = '0x0502b1c5';
+  private readonly UNISWAP_V2_SELECTOR = '0x0502b1c5';
 
   constructor(private readonly tokenRepository: TokenRepository) {}
 
@@ -121,7 +121,7 @@ export class SwapService {
       [srcToken.address, swapData.amount, 1, pools],
     );
 
-    return this.UNISWAP_V3_SELECTOR + data.slice(2);
+    return this.UNISWAP_V2_SELECTOR + data.slice(2);
   }
 
   private getPool(sToken: Token, dToken: Token, unwrap: boolean) {

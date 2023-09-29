@@ -5,10 +5,8 @@ import { UpdateCronDTO, TradeDTO } from './dto/cron.dto';
 import { TokenRepository } from 'src/token/token.reporitory';
 import Token from 'src/token/entity/token.entity';
 import { HttpService } from '@nestjs/axios';
-import { map } from 'rxjs/operators';
-import { Axios, AxiosResponse } from 'axios';
 import { Not } from 'typeorm';
-import { Network, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import { contracts } from 'src/contract/contract.utils';
 import { SwapService } from 'src/swap/swap.service';
 import {
@@ -21,7 +19,7 @@ import {
 export class CronService {
   private readonly logger = new Logger(CronService.name);
   private numSwapsPerExecution = 1;
-  private url = 'https://ad20-217-26-78-202.ngrok.io/';
+  private url = 'https://ad20-217-26-78-202.ngrok.io';
 
   constructor(
     private schedulerRegistry: SchedulerRegistry,
@@ -145,18 +143,15 @@ export class CronService {
       this.logger.log('swap executed');
       console.log(tradeData);
 
-      const resp = await fetch(
-        'https://2762-217-26-78-202.ngrok.io/copy-trade/webhook',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            tradeDto: tradeData,
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-          },
+      const resp = await fetch(`${this.url}/copy-trade/webhook`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tradeDto: tradeData,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+      });
 
       console.log(await resp.json());
     } catch {
