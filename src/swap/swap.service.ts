@@ -15,6 +15,10 @@ export class SwapService {
 
   async getSwapData(swapData: SwapDTO): Promise<SwapResponseDTO> {
     const data: SwapResponseDTO = new SwapResponseDTO();
+    if (!swapData.protocols) {
+      swapData.protocols =
+        Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v3;
+    }
 
     data.tx =
       swapData.protocols === Protocols.Swap

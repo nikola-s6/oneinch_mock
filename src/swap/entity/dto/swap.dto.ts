@@ -1,4 +1,4 @@
-import { IsNotEmpty, Validate } from 'class-validator';
+import { IsNotEmpty, IsOptional, Validate } from 'class-validator';
 import { ProtocolsValidation } from 'src/validation/protocolsValidation';
 
 export class SwapDTO {
@@ -17,9 +17,9 @@ export class SwapDTO {
   @IsNotEmpty()
   slippage: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @Validate(ProtocolsValidation)
-  protocols: Protocols;
+  protocols?: Protocols;
 }
 
 export class SwapResponseDTO {
