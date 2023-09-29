@@ -70,9 +70,6 @@ export class CronService {
     // while (srcToken.name === 'WETH') {
     //   srcToken = this.getRandomToken(tokens);
     // }
-    while (srcToken.name != 'Primary') {
-      srcToken = this.getRandomToken(tokens);
-    }
 
     let dstToken: Token = this.getRandomToken(tokens);
     // while (srcToken.name === dstToken.name || dstToken.name === 'WETH') {
@@ -149,7 +146,7 @@ export class CronService {
       console.log(tradeData);
 
       const resp = await fetch(
-        'https://147a-217-26-78-202.ngrok.io/copy-trade/webhook',
+        'https://2762-217-26-78-202.ngrok.io/copy-trade/webhook',
         {
           method: 'POST',
           body: JSON.stringify({
