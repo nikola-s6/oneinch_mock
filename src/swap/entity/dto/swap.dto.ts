@@ -23,10 +23,22 @@ export class SwapDTO {
 }
 
 export class SwapResponseDTO {
-  tx: string;
+  tx: TxData;
+  protocols: Array<Array<ProtocolsData>>;
+}
+
+export class TxData {
+  data: string;
 }
 
 export enum Protocols {
   Swap = 'SWAP',
   Uniswap_v3 = 'UNISWAP_V2',
+}
+
+export class ProtocolsData {
+  name: Protocols;
+  part: number;
+  fromTokenAddress: string;
+  toTokenAddress: string;
 }

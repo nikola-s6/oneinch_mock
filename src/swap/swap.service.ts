@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Protocols, SwapDTO, SwapResponseDTO } from './entity/dto/swap.dto';
+import {
+  Protocols,
+  SwapDTO,
+  SwapResponseDTO,
+  TxData,
+} from './entity/dto/swap.dto';
 import { ethers } from 'ethers';
 import { contracts } from 'src/contract/contract.utils';
 import * as ContractDB from '../contract/entity/contract.entity';
@@ -20,10 +25,24 @@ export class SwapService {
         Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v3;
     }
 
-    data.tx =
+    const tx = new TxData();
+    tx.data =
       swapData.protocols === Protocols.Swap
         ? await this.handleGenericSwap(swapData)
         : await this.handleUniswapV2(swapData);
+
+    data.tx = tx;
+
+    data.protocols = [
+      [
+        {
+          name: swapData.protocols,
+          part: 100,
+          fromTokenAddress: swapData.src,
+          toTokenAddress: swapData.dst,
+        },
+      ],
+    ];
 
     return data;
   }
