@@ -21,7 +21,7 @@ import {
 export class CronService {
   private readonly logger = new Logger(CronService.name);
   private numSwapsPerExecution = 1;
-  private url = '';
+  private url = 'https://ad20-217-26-78-202.ngrok.io/';
 
   constructor(
     private schedulerRegistry: SchedulerRegistry,
@@ -29,6 +29,11 @@ export class CronService {
     private readonly swapService: SwapService,
     private httpService: HttpService,
   ) {}
+
+  async executeSwap() {
+    console.log('swap');
+    await this.swapFunc();
+  }
 
   changeUrl(url: string) {
     this.url = url;
@@ -65,6 +70,9 @@ export class CronService {
     // while (srcToken.name === 'WETH') {
     //   srcToken = this.getRandomToken(tokens);
     // }
+    while (srcToken.name != 'Primary') {
+      srcToken = this.getRandomToken(tokens);
+    }
 
     let dstToken: Token = this.getRandomToken(tokens);
     // while (srcToken.name === dstToken.name || dstToken.name === 'WETH') {
@@ -121,7 +129,7 @@ export class CronService {
     try {
       const swap: ethers.TransactionResponse = await signer.sendTransaction({
         to: oneinchAddress,
-        data: data.tx,
+        data: data.tx.data,
       });
       await swap.wait();
 
@@ -138,9 +146,10 @@ export class CronService {
         trader: await signer.getAddress(),
       };
       this.logger.log('swap executed');
+      console.log(tradeData);
 
       const resp = await fetch(
-        'https://9404-217-26-78-202.ngrok.io/copy-trade/webhook',
+        'https://147a-217-26-78-202.ngrok.io/copy-trade/webhook',
         {
           method: 'POST',
           body: JSON.stringify({

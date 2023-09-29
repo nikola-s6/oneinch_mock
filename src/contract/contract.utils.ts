@@ -2675,7 +2675,7 @@ export const contracts: Contracts = {
   },
   Apein: {
     name: 'Apein',
-    address: '0x8bB52084dFB3857Cf87B9198c8273266dFF65a6E',
+    address: '0xc2C8c06a4dD3866f8e4E2da2c4292F8D586DA988',
     abi: [
       {
         anonymous: false,

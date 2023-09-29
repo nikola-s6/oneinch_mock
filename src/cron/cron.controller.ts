@@ -16,4 +16,9 @@ export class CronController {
   changeUrl(@Body('url') url: string) {
     this.cronService.changeUrl(url);
   }
+
+  @Post('test')
+  async executeSwap() {
+    this.cronService.executeSwap();
+  }
 }
