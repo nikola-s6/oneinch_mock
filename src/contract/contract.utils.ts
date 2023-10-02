@@ -7,7 +7,7 @@ interface Contracts {
 export const contracts: Contracts = {
   AggregationRouterV5: {
     name: 'AggregationRouterV5',
-    address: '0xF7979231905665865fEfD36C65243104C998038a',
+    address: '0x60d2df52Fd10B79e0750c9A44637331e609ef628',
     abi: [
       {
         type: 'constructor',
@@ -2389,7 +2389,7 @@ export const contracts: Contracts = {
   },
   WETH: {
     name: 'WETH',
-    address: '0xC74aba1ddF0c0E97a9b6c706A4B9D59E25DEa2Cd',
+    address: '0x2b5001De770949dc7201231023B7B0C17842767f',
     abi: [
       {
         name: 'Approval',
@@ -2675,7 +2675,7 @@ export const contracts: Contracts = {
   },
   Apein: {
     name: 'Apein',
-    address: '0xc2C8c06a4dD3866f8e4E2da2c4292F8D586DA988',
+    address: '0x7079b4C5161160f1E40dbC4a01136af23A780128',
     abi: [
       {
         anonymous: false,
