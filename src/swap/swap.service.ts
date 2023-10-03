@@ -22,7 +22,7 @@ export class SwapService {
     const data: SwapResponseDTO = new SwapResponseDTO();
     if (!swapData.protocols) {
       swapData.protocols =
-        Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v3;
+        Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v2;
     }
 
     const tx = new TxData();
@@ -98,7 +98,7 @@ export class SwapService {
     const pools = [];
 
     if (srcToken.name === 'Primary' || dstToken.name === 'Primary') {
-      dstToken.name === 'WETH'
+      dstToken.name === 'Ether'
         ? pools.push(this.getPool(srcToken, dstToken, true))
         : pools.push(this.getPool(srcToken, dstToken, false));
     } else {
@@ -108,7 +108,9 @@ export class SwapService {
         },
       });
       pools.push(this.getPool(srcToken, primToken, false));
-      pools.push(this.getPool(primToken, dstToken, false));
+      dstToken.name === 'Ether'
+        ? pools.push(this.getPool(primToken, dstToken, true))
+        : pools.push(this.getPool(primToken, dstToken, false));
     }
 
     const data = coder.encode(
@@ -143,6 +145,8 @@ export class SwapService {
         ? '00000000000000003B6D0340'
         : '80000000000000003B6D0340';
       poolHex += sToken.pair?.substring(2);
+      console.log(sToken, 'sToken');
+      console.log(poolHex, 'poolHex');
       return ethers.toBigInt(this.h2d(poolHex));
     } else {
       throw new Error('One token must be primary');
