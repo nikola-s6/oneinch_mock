@@ -14,12 +14,13 @@ import {
   SwapDTO,
   SwapResponseDTO,
 } from 'src/swap/entity/dto/swap.dto';
+import { sign } from 'crypto';
 
 @Injectable()
 export class CronService {
   private readonly logger = new Logger(CronService.name);
   private numSwapsPerExecution = 1;
-  private url = 'https://ad20-217-26-78-202.ngrok.io';
+  private url = 'https://a28f-217-26-78-202.ngrok.io';
 
   constructor(
     private schedulerRegistry: SchedulerRegistry,
@@ -65,15 +66,12 @@ export class CronService {
     });
 
     let srcToken: Token = this.getRandomToken(tokens);
-    // while (srcToken.name === 'WETH') {
-    //   srcToken = this.getRandomToken(tokens);
-    // }
+    while (srcToken.symbol !== 'scnd') {
+      srcToken = this.getRandomToken(tokens);
+    }
 
     let dstToken: Token = this.getRandomToken(tokens);
-    // while (srcToken.name === dstToken.name || dstToken.name === 'WETH') {
-    //   dstToken = this.getRandomToken(tokens);
-    // }
-    while (srcToken.name === dstToken.name) {
+    while (srcToken.name === dstToken.name || dstToken.name !== 'Ether') {
       dstToken = this.getRandomToken(tokens);
     }
 
@@ -86,7 +84,7 @@ export class CronService {
     const oneinchAddress = contracts['AggregationRouterV5'].address;
 
     const amount: string = ethers
-      .parseEther(Number(Math.floor(Math.random() * 4) + 1).toString())
+      .parseEther(Number((Math.floor(Math.random() * 4) + 1) / 100).toString())
       .toString();
 
     const srcTokenContract = new ethers.Contract(
@@ -100,9 +98,16 @@ export class CronService {
       contracts['Token'].abi,
       signer,
     );
-    const balanceBefore: number = (await dstTokenContract.balanceOf(
-      await signer.getAddress(),
-    )) as bigint as unknown as number;
+
+    // TODO: ne racunati ovo ako je dstToken Ether
+    const balanceBefore: number =
+      dstToken.name === 'Ether'
+        ? ((await provider.getBalance(
+            signer.address,
+          )) as bigint as unknown as number)
+        : ((await dstTokenContract.balanceOf(
+            await signer.getAddress(),
+          )) as bigint as unknown as number);
 
     const appResp: ethers.TransactionResponse = await srcTokenContract.approve(
       oneinchAddress,
@@ -116,21 +121,29 @@ export class CronService {
       amount: amount,
       from: await signer.getAddress(),
       slippage: 1,
-      protocols: Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v3,
+      // protocols: Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v3,
+      protocols: Protocols.Uniswap_v2,
     };
 
     const data: SwapResponseDTO = await this.swapService.getSwapData(swapData);
 
+    console.log(amount);
     try {
       const swap: ethers.TransactionResponse = await signer.sendTransaction({
         to: oneinchAddress,
         data: data.tx.data,
+        // value: srcToken.name === 'Ether' ? amount : ethers.parseEther('0'),
       });
-      await swap.wait();
+      await swap.wait(2);
 
-      const balanceAfter: number = (await dstTokenContract.balanceOf(
-        await signer.getAddress(),
-      )) as bigint as unknown as number;
+      const balanceAfter: number =
+        dstToken.name === 'Ether'
+          ? ((await provider.getBalance(
+              signer.address,
+            )) as bigint as unknown as number)
+          : ((await dstTokenContract.balanceOf(
+              await signer.getAddress(),
+            )) as bigint as unknown as number);
 
       const tradeData: TradeDTO = {
         tokenOut: srcToken.address,
@@ -154,7 +167,8 @@ export class CronService {
       });
 
       console.log(await resp.json());
-    } catch {
+    } catch (error) {
+      console.log(error);
       this.logger.warn('swap failed');
     }
   }
