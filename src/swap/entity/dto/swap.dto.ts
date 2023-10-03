@@ -33,7 +33,7 @@ export class TxData {
 
 export enum Protocols {
   Swap = 'SWAP',
-  Uniswap_v3 = 'UNISWAP_V2',
+  Uniswap_v2 = 'UNISWAP_V2',
 }
 
 export class ProtocolsData {
