@@ -145,8 +145,6 @@ export class SwapService {
         ? '00000000000000003B6D0340'
         : '80000000000000003B6D0340';
       poolHex += sToken.pair?.substring(2);
-      console.log(sToken, 'sToken');
-      console.log(poolHex, 'poolHex');
       return ethers.toBigInt(this.h2d(poolHex));
     } else {
       throw new Error('One token must be primary');

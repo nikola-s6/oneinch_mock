@@ -21,4 +21,9 @@ export class CronController {
   async executeSwap() {
     this.cronService.executeSwap();
   }
+
+  @Post('stop')
+  async stopCron() {
+    this.cronService.deleteCron();
+  }
 }
