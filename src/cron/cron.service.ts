@@ -89,7 +89,12 @@ export class CronService {
     const oneinchAddress = contracts['AggregationRouterV5'].address;
 
     const amount: string = ethers
-      .parseEther(Number((Math.floor(Math.random() * 4) + 1) / 100).toString())
+      .parseEther(
+        Number(
+          (Math.floor(Math.random() * 4) + 1) /
+            (srcToken.name === 'Ether' ? 1000 : 1),
+        ).toString(),
+      )
       .toString();
 
     if (srcToken.name !== 'Ether') {
@@ -127,6 +132,7 @@ export class CronService {
       from: await signer.getAddress(),
       slippage: 1,
       // protocols: Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v2,
+      protocols: Protocols.Uniswap_v2,
     };
 
     const data: SwapResponseDTO = await this.swapService.getSwapData(swapData);
@@ -138,7 +144,8 @@ export class CronService {
         data: data.tx.data,
         value: srcToken.name === 'Ether' ? amount : ethers.parseEther('0'),
       });
-      await swap.wait(2);
+      const response = await swap.wait(2);
+      console.log(response.logs);
 
       var balanceAfter: number;
       if (dstToken.name !== 'Ether') {
@@ -165,7 +172,7 @@ export class CronService {
         trader: await signer.getAddress(),
       };
       this.logger.log('swap executed');
-      console.log(tradeData);
+      // console.log(tradeData);
       // const resp = await fetch(`${this.url}/copy-trade/webhook`, {
       //   method: 'POST',
       //   body: JSON.stringify({
