@@ -24,6 +24,12 @@ export class SwapService {
       swapData.protocols =
         Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v2;
     }
+    if (
+      swapData.src === ethers.ZeroAddress ||
+      swapData.dst === ethers.ZeroAddress
+    ) {
+      swapData.protocols = Protocols.Uniswap_v2;
+    }
 
     const tx = new TxData();
     tx.data =
@@ -86,13 +92,13 @@ export class SwapService {
 
     const srcToken: Token = await this.tokenRepository.findOneOrFail({
       where: {
-        address: swapData.src,
+        address: swapData.src.toLowerCase(),
       },
     });
 
     const dstToken: Token = await this.tokenRepository.findOneOrFail({
       where: {
-        address: swapData.dst,
+        address: swapData.dst.toLowerCase(),
       },
     });
     const pools = [];

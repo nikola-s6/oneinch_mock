@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { CronService } from './cron.service';
-import { UpdateCronDTO } from './dto/cron.dto';
+import { CustomSwapDTO, SwapHashResponse, UpdateCronDTO } from './dto/cron.dto';
 
 @Controller('cron')
 export class CronController {
@@ -12,14 +12,16 @@ export class CronController {
     this.cronService.changeCronSchedule(cronUpdate);
   }
 
-  @Post('url')
-  changeUrl(@Body('url') url: string) {
-    this.cronService.changeUrl(url);
+  @Post('execute')
+  async executeSwap() {
+    return this.cronService.executeSwap();
   }
 
-  @Post('test')
-  async executeSwap() {
-    this.cronService.executeSwap();
+  @Post('execute/custom')
+  async executeCustomSwap(
+    @Body() swapData: CustomSwapDTO,
+  ): Promise<SwapHashResponse> {
+    return this.cronService.executeCustomSwap(swapData);
   }
 
   @Post('stop')

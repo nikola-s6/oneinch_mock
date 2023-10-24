@@ -17,3 +17,13 @@ export class TradeDTO {
   trader: string;
   txHash: string;
 }
+
+export class CustomSwapDTO {
+  tokenOut: string;
+  tokenIn: string;
+  tokenOutAmount: string;
+}
+
+export class SwapHashResponse {
+  txHash: string;
+}

@@ -1,7 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { SchedulerRegistry, Cron } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { UpdateCronDTO, TradeDTO } from './dto/cron.dto';
+import {
+  UpdateCronDTO,
+  TradeDTO,
+  CustomSwapDTO,
+  SwapHashResponse,
+} from './dto/cron.dto';
 import { TokenRepository } from 'src/token/token.reporitory';
 import Token from 'src/token/entity/token.entity';
 import { HttpService } from '@nestjs/axios';
@@ -14,13 +23,11 @@ import {
   SwapDTO,
   SwapResponseDTO,
 } from 'src/swap/entity/dto/swap.dto';
-import { sign } from 'crypto';
 
 @Injectable()
 export class CronService {
   private readonly logger = new Logger(CronService.name);
   private numSwapsPerExecution = 1;
-  private url = 'https://3954-217-26-78-202.ngrok.io';
 
   constructor(
     private schedulerRegistry: SchedulerRegistry,
@@ -29,13 +36,8 @@ export class CronService {
     private httpService: HttpService,
   ) {}
 
-  async executeSwap() {
-    console.log('swap');
-    await this.swapFunc();
-  }
-
-  changeUrl(url: string) {
-    this.url = url;
+  async executeSwap(): Promise<SwapHashResponse> {
+    return await this.swapFunc();
   }
 
   async deleteCron() {
@@ -55,7 +57,11 @@ export class CronService {
 
     const newCron = new CronJob(updateCron.time, async () => {
       for (let index = 0; index < this.numSwapsPerExecution; index++) {
-        await this.swapFunc();
+        try {
+          await this.swapFunc();
+        } catch (error) {
+          console.log(error);
+        }
       }
     });
 
@@ -66,7 +72,56 @@ export class CronService {
     newCron.start();
   }
 
-  private async swapFunc() {
+  async executeCustomSwap(data: CustomSwapDTO): Promise<SwapHashResponse> {
+    const oneinchAddress = contracts['AggregationRouterV5'].address;
+    const provider = new ethers.AlchemyProvider(
+      'sepolia',
+      process.env.ALCHEMY_KEY,
+    );
+    const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+    if (data.tokenOut !== ethers.ZeroAddress) {
+      const srcTokenContract = new ethers.Contract(
+        data.tokenOut,
+        contracts['Token'].abi,
+        signer,
+      );
+      const appResp: ethers.TransactionResponse =
+        await srcTokenContract.approve(
+          oneinchAddress,
+          ethers.toBigInt(data.tokenOutAmount),
+        );
+      await appResp.wait();
+    }
+    const oneinchData: SwapResponseDTO = await this.swapService.getSwapData({
+      from: signer.address,
+      slippage: 1,
+      src: data.tokenOut,
+      dst: data.tokenIn,
+      amount: data.tokenOutAmount,
+      protocols: Protocols.Swap,
+    });
+
+    try {
+      const swap: ethers.TransactionResponse = await signer.sendTransaction({
+        to: oneinchAddress,
+        data: oneinchData.tx.data,
+        value:
+          data.tokenOut === ethers.ZeroAddress
+            ? data.tokenOutAmount
+            : ethers.parseEther('0'),
+      });
+      await swap.wait();
+      this.logger.log(`Successful custom swap: ${swap.hash}`);
+      return { txHash: swap.hash };
+    } catch (error) {
+      this.logger.warn('Custom swap failed');
+      console.log(data);
+      console.log(error);
+      throw new InternalServerErrorException('Custom swap failed');
+    }
+  }
+
+  private async swapFunc(): Promise<SwapHashResponse> {
     const tokens: Token[] = await this.tokenRepository.find({
       where: {
         name: Not('WETH'),
@@ -92,7 +147,7 @@ export class CronService {
       .parseEther(
         Number(
           (Math.floor(Math.random() * 4) + 1) /
-            (srcToken.name === 'Ether' ? 1000 : 1),
+            (srcToken.name === 'Ether' || dstToken.name === 'Ether' ? 1000 : 1),
         ).toString(),
       )
       .toString();
@@ -108,22 +163,22 @@ export class CronService {
       await appResp.wait();
     }
 
-    var balanceBefore: number;
+    // var balanceBefore: number;
 
-    if (dstToken.name !== 'Ether') {
-      const dstTokenContract = new ethers.Contract(
-        dstToken.address,
-        contracts['Token'].abi,
-        signer,
-      );
-      balanceBefore = (await dstTokenContract.balanceOf(
-        await signer.getAddress(),
-      )) as bigint as unknown as number;
-    } else {
-      balanceBefore = (await provider.getBalance(
-        signer.address,
-      )) as bigint as unknown as number;
-    }
+    // if (dstToken.name !== 'Ether') {
+    //   const dstTokenContract = new ethers.Contract(
+    //     dstToken.address,
+    //     contracts['Token'].abi,
+    //     signer,
+    //   );
+    //   balanceBefore = (await dstTokenContract.balanceOf(
+    //     await signer.getAddress(),
+    //   )) as bigint as unknown as number;
+    // } else {
+    //   balanceBefore = (await provider.getBalance(
+    //     signer.address,
+    //   )) as bigint as unknown as number;
+    // }
 
     const swapData: SwapDTO = {
       src: srcToken.address,
@@ -131,63 +186,49 @@ export class CronService {
       amount: amount,
       from: await signer.getAddress(),
       slippage: 1,
-      // protocols: Date.now() % 2 === 0 ? Protocols.Swap : Protocols.Uniswap_v2,
-      protocols: Protocols.Uniswap_v2,
     };
 
     const data: SwapResponseDTO = await this.swapService.getSwapData(swapData);
 
-    console.log(amount);
     try {
       const swap: ethers.TransactionResponse = await signer.sendTransaction({
         to: oneinchAddress,
         data: data.tx.data,
         value: srcToken.name === 'Ether' ? amount : ethers.parseEther('0'),
       });
-      const response = await swap.wait(2);
-      console.log(response.logs);
+      await swap.wait();
 
-      var balanceAfter: number;
-      if (dstToken.name !== 'Ether') {
-        const dstTokenContract = new ethers.Contract(
-          dstToken.address,
-          contracts['Token'].abi,
-          signer,
-        );
-        balanceAfter = (await dstTokenContract.balanceOf(
-          await signer.getAddress(),
-        )) as bigint as unknown as number;
-      } else {
-        balanceAfter = (await provider.getBalance(
-          signer.address,
-        )) as bigint as unknown as number;
-      }
+      // var balanceAfter: number;
+      // if (dstToken.name !== 'Ether') {
+      //   const dstTokenContract = new ethers.Contract(
+      //     dstToken.address,
+      //     contracts['Token'].abi,
+      //     signer,
+      //   );
+      //   balanceAfter = (await dstTokenContract.balanceOf(
+      //     await signer.getAddress(),
+      //   )) as bigint as unknown as number;
+      // } else {
+      //   balanceAfter = (await provider.getBalance(
+      //     signer.address,
+      //   )) as bigint as unknown as number;
+      // }
 
-      const tradeData: TradeDTO = {
-        tokenOut: srcToken.address,
-        tokenIn: dstToken.address,
-        tokenOutAmount: amount,
-        tokenInAmount: (balanceAfter - balanceBefore).toString(),
-        txHash: swap.hash,
-        trader: await signer.getAddress(),
-      };
-      this.logger.log('swap executed');
-      // console.log(tradeData);
-      // const resp = await fetch(`${this.url}/copy-trade/webhook`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({
-      //     tradeDto: tradeData,
-      //   }),
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      // });
-
-      // console.log(await resp.json());
+      // const tradeData: TradeDTO = {
+      //   tokenOut: srcToken.address,
+      //   tokenIn: dstToken.address,
+      //   tokenOutAmount: amount,
+      //   tokenInAmount: (balanceAfter - balanceBefore).toString(),
+      //   txHash: swap.hash,
+      //   trader: await signer.getAddress(),
+      // };
+      this.logger.log(`Successfull swap: ${swap.hash}`);
+      return { txHash: swap.hash };
     } catch (error) {
-      this.logger.warn('swap failed');
+      this.logger.warn('Swap failed');
       console.log(swapData);
       console.log(error);
+      throw new InternalServerErrorException('Swap failed');
     }
   }
 
