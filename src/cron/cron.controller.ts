@@ -1,4 +1,11 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  BadRequestException,
+} from '@nestjs/common';
 import { CronService } from './cron.service';
 import { CustomSwapDTO, SwapHashResponse, UpdateCronDTO } from './dto/cron.dto';
 
@@ -7,9 +14,15 @@ export class CronController {
   constructor(private readonly cronService: CronService) {}
 
   // receiver string in format "* * * * * *"
-  @Post('schedule')
-  changeCronSchedule(@Body() cronUpdate: UpdateCronDTO) {
-    this.cronService.changeCronSchedule(cronUpdate);
+  @Post('schedule/:id')
+  changeCronSchedule(
+    @Body() cronUpdate: UpdateCronDTO,
+    @Param('id', ParseIntPipe) cronId: number,
+  ) {
+    if (![1, 2].includes(cronId)) {
+      throw new BadRequestException('cron id must be 1 or 2');
+    }
+    this.cronService.changeCronSchedule(cronUpdate, cronId);
   }
 
   @Post('execute')
@@ -24,8 +37,8 @@ export class CronController {
     return this.cronService.executeCustomSwap(swapData);
   }
 
-  @Post('stop')
-  async stopCron() {
-    this.cronService.deleteCron();
+  @Post('stop/:id')
+  async stopCron(@Param('id', ParseIntPipe) cronId: number) {
+    this.cronService.deleteCron(cronId);
   }
 }
