@@ -6,15 +6,9 @@ import {
 } from '@nestjs/common';
 import { SchedulerRegistry, Cron } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import {
-  UpdateCronDTO,
-  TradeDTO,
-  CustomSwapDTO,
-  SwapHashResponse,
-} from './dto/cron.dto';
+import { UpdateCronDTO, CustomSwapDTO, SwapHashResponse } from './dto/cron.dto';
 import { TokenRepository } from 'src/token/token.reporitory';
 import Token from 'src/token/entity/token.entity';
-import { HttpService } from '@nestjs/axios';
 import { Not } from 'typeorm';
 import { ethers } from 'ethers';
 import { contracts } from 'src/contract/contract.utils';
@@ -24,15 +18,13 @@ import {
   SwapDTO,
   SwapResponseDTO,
 } from 'src/swap/entity/dto/swap.dto';
-import { sign } from 'crypto';
-import { response } from 'express';
 
 @Injectable()
 export class CronService implements OnModuleInit {
   private readonly logger = new Logger(CronService.name);
   private numSwapsPerExecution = 1;
   private provider: ethers.AlchemyProvider;
-  // custom trader
+  // custom/random trader
   private signer1: ethers.Wallet;
   // cron trader 1
   private signer2: ethers.Wallet;
@@ -43,7 +35,6 @@ export class CronService implements OnModuleInit {
     private schedulerRegistry: SchedulerRegistry,
     private readonly tokenRepository: TokenRepository,
     private readonly swapService: SwapService,
-    private httpService: HttpService,
   ) {}
 
   onModuleInit() {
@@ -67,7 +58,7 @@ export class CronService implements OnModuleInit {
   }
 
   async executeSwap(): Promise<SwapHashResponse> {
-    return await this.swapFunc(this.signer3);
+    return await this.swapFunc(this.signer1);
   }
 
   async deleteCron(cronId: number) {
